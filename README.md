@@ -2,9 +2,11 @@
 
 이 프로젝트는 AWS 플랫폼에서 Private subnet에 안정적으로 ECS Fargate 서비스를 배포하는 방법과 SAM(CloudFormation) 템플릿 예시를 다룬다.
 
-## Highlights
+## Summary
 
-![alt text](<sam-template-ecs-private-and-ecr (1).jpg>)
+- AWS 내 레거시 프로젝트의 EC2 기반 모놀리식 아키텍처를 MSA 구조로 개선하는 도중 ECS 서비스가 ECR과의 네트워크 연결이 되지 않아 VPC Endpoint PrivateLink 기술을 사용해 연결을 성공하였다. NAT 혹은 Public IP 할당처럼, Private subnet 서비스를 노출하는 방법은 전혀 사용하지 않았다.
+
+  ![alt text](<sam-template-ecs-private-and-ecr (1).jpg>)
 
 - VPC Endpoint PrivateLink 설정: 핵심 외 설정은 생략하였다. 자세한 내용은 아래 내용 혹은 Repository의 templates를 참고한다.
   ```yaml
@@ -169,8 +171,9 @@ ECR과 ECS 서비스의 네트워크에서의 실제 구조는 다음과 같을 
 근본 원인은 파악한 것으로 보인다. 그렇다면 해결책은?
 이전의 경우 VPC 외부에 API 요청을 하기 위해 Private subnet에 NAT gateway 설정을 하였다고 한다. 다만 그렇게 되면 다음과 같은 문제가 발생된다.
 
-- ECR에 요창하겠다고 NAT를 설정하면 Private subnet 내부 서비스의 아웃바운드가 취약해진다. 방화벽이라는 대안이 있지만 Private subnet의 의미가 무색하게 아웃바운드 요청이 전혀 불필요한 상황에서도 NAT를 설정해야하는 상황이 된다.
-- NAT gateway를 설정하고 ECR API의 Public IP로 요청을 보내는 거라면, 이는 인터넷 트래픽을 발생시킨다. 곧, 트래픽 비용의 발생을 의미한다.
+- ECR에 요청하겠다고 NAT를 설정하면 Private subnet 내부 서비스의 아웃바운드가 취약해진다. Private subnet의 의미가 무색하게 아웃바운드 요청은 ECR 외에는 전혀 불필요한 상황에서도 NAT를 설정해야하는 상황이 된다.
+- 방화벽이라는 대안이 있겠지만, Private subnet에서 폐쇄형 네트워크를 구축하는 것과 일부 Public한 속성을 만들고 방화벽을 설정하는 것은 엄연히 결이 다르다. 마치 방어 능력이 뛰어난 전투기와 스텔스 전투기를 비교하는 것이다. 공격을 잘 막는 것과 공격할 대상이 보이지 않는 것, 과연 어떤 방법이 더 안전할까?
+- NAT gateway를 설정하고 ECR API의 Public IP로 요청을 보내는 거라면, 이는 인터넷 트래픽을 발생시킨다. 곧, 트래픽 비용의 발생을 의미한다. AWS에서는 내부 네트워크 트래픽에 대해 트래픽 요금을 거의 부과하지 않고, 인터넷을 통한 트래픽에 요금이 가장 많이 붙는다. 하나의 작은 변화로 FinOps가 가능하고 불가능한 것이 갈린다.
 
 결국 NAT를 이용한 외부 요청은 이제 구시대적인 통신 방식이다. 가장 좋은 케이스는 ECR로만 "비밀 터널"이 열리는 것이다.
 
