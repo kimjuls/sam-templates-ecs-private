@@ -246,3 +246,16 @@ PrivateLink 컨셉이 적용된 최종 네트워크 구조이다.
 - 해당 과정에서 NAT 설정은 전혀 관여하지 않았다. 오로지 PrivateLink를 통해 연결한 것이다.
 - 위 ECR 외에 Log 전송을 위한 CloudWatch, DocumentDB를 연결을 위한 RDS 엔드포인트 등의 설정도 포함하였고, 모두 정상적으로 NAT 설정없이 연결 성공하였다.
 - 자세한 구성은 templates 디렉토리를 참고하면 된다.
+
+## Reference
+
+- 이 모든 해결책의 설계는 이곳에서 참고하였다: [Stack Overflow 링크](https://stackoverflow.com/questions/61265108/aws-ecs-fargate-resourceinitializationerror-unable-to-pull-secrets-or-registry)
+- [Large sized AWS VPC for an Amazon ECS cluster](https://containersonaws.com/pattern/large-vpc-for-amazon-ecs-cluster): 위 stack overflow 답변 내에 있는 Containers on AWS 링크이다. ECS cluster를 위한 VPC 템플릿 구성 방법에 대해 설명한다.
+- [Amazon ECS cluster with isolated VPC and no NAT Gateway](https://containersonaws.com/pattern/ecs-cluster-isolated-vpc-no-nat-gateway): 마찬가지로 답변에서 참조하는 링크인데, 이것은 NAT 없이 Private subnet에 ECS를 구축하고, ECR을 연결하는 방법을 설명하고 있다.
+
+- 위 두 문서를 참고하여, 로드밸런서로 퍼블릭 트래픽을 받아 프라이빗 ECS 서비스로 전달할 수 있는 VPC를 구축할 수 있었다.
+
+## 회고
+
+- 역시 네트워크는 언제 봐도 어렵다. 하지만 이번 "헤딩"으로 AWS 서비스들의 네트워크 구조를 더 확실히 알 수 있었다. VPC 내부 및 VPC 외부에 있는 서비스, 그리고 그것들의 연결, 그 외 별도의 글로벌 서비스들, 이것들의 네트워크 위치를 정확히 알아야 이해하고 구축할 수 있는 부분이다.
+- 쉽게 구축할 수 있는 방법은 얼마든지 있다. '그냥 귀찮으니 Public으로 열어버리자'. 그러면 정말 쉽겠다. 하지만 그러한 것들 하나하나가 쌓여 보안 취약점이 되고 나중에는 실제 공격을 받아도 아무것도 손쓸 수 없게 된다. 클린코드에서 코드의 청결함에 대해 이야기할 때 "깨진 유리창" 이론과 같이 말이다. 항상 정석적으로 정확하게 구현하는 것이 완벽한 아키텍처로 다가가는 한걸음이고, 그것이 내가 발전하는 지름길이자, "정도"이다.
