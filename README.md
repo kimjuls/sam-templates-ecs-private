@@ -1,6 +1,6 @@
 # sam-templates-ecs-private
 
-이 프로젝트는 AWS 플랫폼에서 Private subnet에 안정적으로 ECS Fargate 서비스를 배포하는 방법과 SAM(CloudFormation) 템플릿 예시를 다룬다.
+이 프로젝트는 AWS 플랫폼에서 Private subnet에 ECS Fargate 서비스를 배포하던 중 겪은 Troubleshooting에 대한 회고이다. 그 내용은 해당 방법과 SAM(CloudFormation) 템플릿 예시를 다룬다.
 
 ## Summary
 
