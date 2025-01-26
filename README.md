@@ -119,7 +119,7 @@ denied 혹은 timeout 문제는 네트워크 이슈임이 명확하므로 VPC �
 
 ![alt text](sam-template-ecs-private.jpg)
 
-- 먼저 ECS 클러스터를 생성하고, Fargate 서비스를 생성한다. 이 서비스에는 최소 1개부터 다수의 Task를 Task 정의에 따라 자동 배포하고 롤링 업데이트가 가능하다(블루/그린 배포 방식도 있지만 여기서는 다루지 않겠다).
+- 먼저 ECS 클러스터를 생성하고, Fargate 서비스를 생성한다. 이 서비스에는 최소 1개부터 다수의 Task를 Task 정의에 따라 자동 배포하고 롤링 업데이트를 별도의 설정없이 지원한다.
   > AWS의 ECS 서비스는 EKS와 대척점을 이루고 있는 서비스로서, Docker swarm 및 Kubernetes와 유사한 AWS 관리형 컨테이너 오케스트레이션 플랫폼의 일종이다. 배포 방식은 EC2 및 Fargate 두가지가 있는데, 그 중 Fargate는 서버리스 옵션으로 인프라 수준을 AWS에서 관리해주기 때문에 직접 관여할 필요가 없는 옵션이다. 컨테이너가 작동되고 있는 인스턴스가 정상인지 알 필요가 없다. 물론 AWS의 인프라 관리 능력을 신뢰해야한다(...).
 - 그리고 이 ECS 서비스는 VPC 내의 두 가용영역의 Private subnet 내에 위치한다. 애플리케이션의 외부 접근을 차단하기 위해서이다. Public 영역에 서비스들을 두면 각 서비스 별로 Public IP를 이용한 외부 접근을 차단하기 위해 각 서비스의 방화벽, 여기서는 보안 그룹에 의지해야하는 반면, Private subnet에 위치하면 내부 서비스 간의 보안이 전혀 필요없이 연결할 수 있고 외부 접근도 원천 차단된다. 이렇게 되면 Private subnet 내 모든 서비스의 보안 그룹 인바운드 설정은 간단하게 'Public subnet으로부터 온 트래픽만을 허용한다'와 같은 식으로 간단하게 설정 가능하면서 보안도 우수하다.
 - 이 ECS 서비스로 HTTPS 요청을 라우팅하기 위해 Elastic Load Balancer 서비스를 이용한다. HTTP, 즉 80번 port 요청은 HTTPS로 리다이렉트시킨다. HTTPS의 인증서는 Certificate Manager를 이용해 신규 생성한다. 로드밸런서는 Private Subnet 내 Task로 직접 라우팅할 수 없기 때문에, 대상 그룹(Target Group)을 지정하고 해당 대상 그룹으로 라우팅하도록 한다.
