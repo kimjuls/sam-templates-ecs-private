@@ -8,7 +8,7 @@
 
   ![alt text](<sam-template-ecs-private-and-ecr (1).jpg>)
 
-- VPC Endpoint PrivateLink 설정: 핵심 외 설정은 생략하였다. 자세한 내용은 아래 내용 혹은 Repository의 templates를 참고한다.
+- VPC Endpoint PrivateLink 설정([templates/vpc.yaml](templates/vpc.yaml)): 핵심 외 설정은 생략하였다. 자세한 내용은 아래 내용 혹은 Repository 내 템플릿 예시를 참고한다.
   ```yaml
   EcrApiEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -22,7 +22,7 @@
         - !Ref SecurityGroupPrivateLink
       ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api # ECR을 향한 엔드포인트를 생성한다
   ```
-- ECS 서비스의 보안 그룹 설정: 마찬가지로 핵심 외 설정은 생략하였다.
+- ECS 서비스의 보안 그룹 설정([templates/service.yaml](templates/service.yaml)): 마찬가지로 핵심 외 설정은 생략하였다.
 
   ```yaml
   ECSService:
@@ -60,48 +60,6 @@
 
 ## 배경
 
-### 신규 배포와 수정 시에, "콘솔"은 더 이상 편리하지 않게 됨
-
-점점 AWS 콘솔 사용이 익숙해지고 수정 작업이 반복됨에 따라, 마우스를 활용하는 GUI 콘솔이 점점 불편해지는 것을 느꼈다. 그래서 찾은 것이 CloudFormation과 SAM. AWS 자격 시험 때 공부한 이후로 본격적으로 사용해본적이 없어 이번 기회에 CLI에 익숙해지고 DevOps의 더 깊은 경험을 하고 싶었다.
-
-차이점은 바로 여기에 있다. EC2의 새 인스턴스를 생성했다가 수정하고, 삭제한다고 해보자.
-
-#### Console
-
-1. 콘솔 로그인
-2. EC2 메뉴
-3. 인스턴스 시작
-4. OS 및 인스턴스 유형, 리소스 설정
-5. 인스턴스 시작 대기
-6. 접속
-7. 이후 인스턴스 수정을 위해 EC2 메뉴 재진입
-8. 인스턴스 수정
-9. 재시작해야하면, 다시 인스턴스 재시작 대기
-10. 이후 인스턴스 삭제를 위해 EC2 메뉴 재진입
-11. 인스턴스 삭제
-
-반복 작업과 마우스 클릭의 피로가 벌써부터 전해진다. 게다가 브라우저를 이용한 콘솔은 로딩 부하가 존재한다(느리다).
-
-#### CLI & CloudFormation
-
-이를 개선하기 위해 AWS CLI를 사용한다. CLI와 CloudFormation을 사용하면 콘솔 반복 작업을 반자동화 혹은 자동화할 수 있다.
-
-1. YAML 템플릿 작성
-2. CLI 명령문 입력
-   ```sh
-   aws cloudformation deploy --stack-name ec2-new
-   ```
-3. 인스턴스 시작 대기
-4. 접속
-5. 이후 인스턴스 수정을 위해 YAML 수정
-6. CLI 명령문 위와 동일하게 입력
-7. 이후 인스턴스 삭제를 위해 다음 명령문 입력
-   ```sh
-   aws cloudformation delete-stack --stack-name ec2-new
-   ```
-
-위와 같이 마우스를 이용한 GUI 작업이 없이 YAML만 수정하면 AWS CLI를 통해 간편하게 적용 가능하다. 자신이 콘솔 사용에 익숙해졌다 싶으면, 가능한한 빨리 CLI에 익숙해지는게 편해지는 지름길이라고 생각한다.
-
 ### ECS를 배포하던 중 ECR Image pull을 못하는 현상 발생
 
 이 프로젝트를 기록하게 된 핵심 배경이다. ECS cluster 내에 서비스를 배포한 후, 한참 서비스가 steady state에 도달하지 못하는 것을 보고 태스크 목록을 확인해보니 수많은 프로비저닝 해제된 태스크들이 존재하고 최근 태스크에 다음과 같은 에러를 발견하였다.
@@ -113,14 +71,37 @@ denied 혹은 timeout 문제는 네트워크 이슈임이 명확하므로 VPC �
 
 결론적으로 VPC부터 애플리케이션 서비스까지 전체 아키텍처를 수정해야했고, 이것의 반복 작업을 줄이기 위해 CloudFormation과 SAM을 이용하였다.
 
+### 신규 배포와 수정 시에, "콘솔"은 더 이상 편리하지 않게 됨
+
+추가 개선으로, 점점 AWS 콘솔 사용이 익숙해지고 수정 작업이 반복됨에 따라, 마우스를 활용하는 GUI 콘솔이 점점 불편해지는 것을 느꼈다. 그래서 찾은 것이 CloudFormation과 SAM. AWS 자격 시험 때 공부한 이후로 본격적으로 사용해본 적이 없어 이번 기회에 CLI에 익숙해지고 DevOps의 더 깊은 경험을 하고 싶었다.
+
+차이점은 바로 여기에 있다. EC2의 새 인스턴스의 생성>수정>삭제를 수행한다고 해보자.
+
+```sh
+# Console
+## 1. 콘솔 로그인>EC2 메뉴>인스턴스 시작>OS 및 인스턴스 유형, 리소스 설정>인스턴스 시작 대기>접속
+## 2. 이후 인스턴스 수정을 위해 EC2 메뉴 재진입>인스턴스 수정>인스턴스 재시작 대기
+## 3. 이후 인스턴스 삭제를 위해 EC2 메뉴 재진입>인스턴스 삭제
+---------------------------------------------------------------
+# CLI & CloudFormation
+## 1. YAML 템플릿 작성>CLI 명령문(아래) 입력>인스턴스 시작 대기>접속
+$ aws cloudformation deploy --stack-name ec2-new
+## 2. 이후 인스턴스 수정을 위해 YAML 수정>명령문 동일하게 입력
+$ aws cloudformation deploy --stack-name ec2-new
+## 3. 이후 인스턴스 삭제를 위해 다음 명령문 입력
+$ aws cloudformation delete-stack --stack-name ec2-new
+```
+
+콘솔의 경우 반복 작업과 마우스 클릭의 피로가 벌써부터 전해진다. 게다가 브라우저를 이용한 콘솔은 로딩 부하가 존재한다(느리다). 반면 CLI와 CloudFormation을 사용하면 GUI 기반 콘솔 작업이 없이 YAML만 수정하여 AWS CLI를 통해 간편하게 적용 가능하다. 자신이 콘솔 사용에 익숙해졌다 싶으면, 가능한 한 빨리 CLI에 익숙해지는게 편해지는 지름길이라고 생각한다.
+
 ## Infrastructure
 
-현재 배포해야하는 서비스는 Next.js 웹 애플리케이션과 MongoDB 호환 DocumentDB, 단 2개이다. 이를 배포하기 위해 다음과 같은 아키텍처가 필요하다.
+현재 배포해야하는 서비스는 Next.js 웹 애플리케이션과 MongoDB 호환 DocumentDB, 단 2개이다. 이를 배포하기 위해 다음과 같은 조금 복잡한 아키텍처가 필요하다.
 
 ![alt text](sam-template-ecs-private.jpg)
 
 - 먼저 ECS 클러스터를 생성하고, Fargate 서비스를 생성한다. 이 서비스에는 최소 1개부터 다수의 Task를 Task 정의에 따라 자동 배포하고 롤링 업데이트가 가능하다(블루/그린 배포 방식도 있지만 여기서는 다루지 않겠다).
-  > AWS의 ECS 서비스는 EKS와 대척점을 이루고 있는 서비스로서, Docker swarm 및 Kubernetes와 유사한 AWS 관리형 컨테이너 오케스트레이션 플랫폼의 일종이다. 배포 방식은 EC2 및 Fargate 두가지가 있는데, 그 중 Fargate는 서버리스 옵션으로 인프라 수준을 AWS에서 관리해주기 때문에 직접 관여할 필요가 없는 옵션이다. 컨테이너가 작동되고 있는 인스턴스가 정상인지 알 필요가 없다. 물론 AWS의 인프라 관리 능력을 신뢰해야한다(...).
+  > AWS의 ECS 서비스는 EKS와 대척점을 이루고 있는 서비스로서, Docker swarm 및 Kubernetes와 유사한 AWS 관리형 컨테이너 오케스트레이션 플랫폼의 일종이다. 배포 방식은 EC2 및 Fargate 두가지가 있는데, 그 중 Fargate는 인프라 수준을 AWS에서 관리해주기 때문에 직접 관리에 관여할 필요가 없는 편리한 서버리스 옵션이다.
 - 그리고 이 ECS 서비스는 VPC 내의 두 가용영역의 Private subnet 내에 위치한다. 애플리케이션의 외부 접근을 차단하기 위해서이다. Public 영역에 서비스들을 두면 각 서비스 별로 Public IP를 이용한 외부 접근을 차단하기 위해 각 서비스의 방화벽, 여기서는 보안 그룹에 의지해야하는 반면, Private subnet에 위치하면 내부 서비스 간의 보안이 전혀 필요없이 연결할 수 있고 외부 접근도 원천 차단된다. 이렇게 되면 Private subnet 내 모든 서비스의 보안 그룹 인바운드 설정은 간단하게 'Public subnet으로부터 온 트래픽만을 허용한다'와 같은 식으로 간단하게 설정 가능하면서 보안도 우수하다.
 - 이 ECS 서비스로 HTTPS 요청을 라우팅하기 위해 Elastic Load Balancer 서비스를 이용한다. HTTP, 즉 80번 port 요청은 HTTPS로 리다이렉트시킨다. HTTPS의 인증서는 Certificate Manager를 이용해 신규 생성한다. 로드밸런서는 Private Subnet 내 Task로 직접 라우팅할 수 없기 때문에, 대상 그룹(Target Group)을 지정하고 해당 대상 그룹으로 라우팅하도록 한다.
 - 대상 그룹은 Health check를 필요로 한다(필수는 아니다). Next.js 웹 애플리케이션 내에 health check API 엔드포인트를 하나 생성하고, 포트와 enpoint를 대상 그룹에 설정한다. 대상 그룹은 Task가 정상적으로 작동하는지 해당 엔드포인트로 GET HTTP 요청을 보내 확인한다.
@@ -152,7 +133,7 @@ Name:   ecr.ap-northeast-2.amazonaws.com
 Address: 54.180.184.234
 ```
 
-위 결과에서 확정된 정보는 다음과 같다.
+위 결과에서 유츄할 수 있는 정보는 다음과 같다.
 
 - 해당 서울 리전의 ECR API로 요청하는데, timeout이 발생한 IP와 같다: DNS 문제는 아니다. IP 주소로 잘 변환돼서 목적지는 잘 찾았다. 요청을 AWS가 관리하는 것이니 당연한 것일지도 모른다.
 - 그렇다면 목적지로 요청을 했는데 응답이 오지 않는 상황이다. Private subnet 내에서 요청하였으니 NAT가 작동해야 요청/응답이 성립할 수 있다.
@@ -172,8 +153,8 @@ ECR과 ECS 서비스의 네트워크에서의 실제 구조는 다음과 같을 
 이전의 경우 VPC 외부에 API 요청을 하기 위해 Private subnet에 NAT gateway 설정을 하였다고 한다. 다만 그렇게 되면 다음과 같은 문제가 발생된다.
 
 - ECR에 요청하겠다고 NAT를 설정하면 Private subnet 내부 서비스의 아웃바운드가 취약해진다. Private subnet의 의미가 무색하게 아웃바운드 요청은 ECR 외에는 전혀 불필요한 상황에서도 NAT를 설정해야하는 상황이 된다.
-- 방화벽이라는 대안이 있겠지만, Private subnet에서 폐쇄형 네트워크를 구축하는 것과 일부 Public한 속성을 만들고 방화벽을 설정하는 것은 엄연히 결이 다르다. 마치 방어 능력이 뛰어난 전투기와 스텔스 전투기를 비교하는 것이다. 공격을 잘 막는 것과 공격할 대상이 보이지 않는 것, 과연 어떤 방법이 더 안전할까?
-- NAT gateway를 설정하고 ECR API의 Public IP로 요청을 보내는 거라면, 이는 인터넷 트래픽을 발생시킨다. 곧, 트래픽 비용의 발생을 의미한다. AWS에서는 내부 네트워크 트래픽에 대해 트래픽 요금을 거의 부과하지 않고, 인터넷을 통한 트래픽에 요금이 가장 많이 붙는다. 하나의 작은 변화로 FinOps가 가능하고 불가능한 것이 갈린다.
+- 방화벽이라는 대안이 있겠지만, Private subnet에서 폐쇄형 네트워크를 구축하는 것과 일부 Public한 속성을 만들고 방화벽을 설정하는 것은 엄연히 결이 다르다. 마치 방어 능력이 뛰어난 전투기와 스텔스 전투기를 비교하는 것이다. 공격을 잘 막는 것과 공격할 대상을 전혀 찾을 수 없는 것, 과연 어떤 방법이 더 안전할까? 나는 후자라고 생각한다.
+- 위에서 `nslookup`으로 IP를 찾았을 때 동일한 IP가 확인됐다. 그렇다면 이 IP는 리전 내 ECR의 Public IP이고, `api.ecr.xxx`의 도메인을 실제 IP주소지로 변환하기 위해 DNS를 거쳐야한다는 이야기이며, 결국 리전 내 ECR로 요청을 보내지만 이는 인터넷 트래픽을 발생시킨다는 이야기이다. 곧, 트래픽 비용의 발생을 의미한다. AWS에서는 내부 네트워크 트래픽에 대해 트래픽 요금을 거의 부과하지 않고, 인터넷을 통한 트래픽에 요금을 부과한다. 하나의 작은 변화로 FinOps 여부가 갈린다.
 
 결국 NAT를 이용한 외부 요청은 이제 구시대적인 통신 방식이다. 가장 좋은 케이스는 ECR로만 "비밀 터널"이 열리는 것이다.
 
@@ -248,11 +229,11 @@ PrivateLink 컨셉이 적용된 최종 네트워크 구조이다.
 - 서비스가 정상적으로 ECR 이미지를 pull하여, Task 생성에 성공하였다.
 - 해당 과정에서 NAT 설정은 전혀 관여하지 않았다. 오로지 PrivateLink를 통해 연결한 것이다.
 - 위 ECR 외에 Log 전송을 위한 CloudWatch, DocumentDB를 연결을 위한 RDS 엔드포인트 등의 설정도 포함하였고, 모두 정상적으로 NAT 설정없이 연결 성공하였다.
-- 자세한 구성은 templates 디렉토리를 참고하면 된다.
+- 자세한 구성은 [templates](templates/) 디렉토리를 참고하면 된다.
 
 ## Reference
 
-- 이 모든 해결책의 설계는 이곳에서 참고하였다: [Stack Overflow 링크](https://stackoverflow.com/questions/61265108/aws-ecs-fargate-resourceinitializationerror-unable-to-pull-secrets-or-registry)
+- 위 해결책은 이곳에서 참고하였다: [Stack Overflow 링크](https://stackoverflow.com/questions/61265108/aws-ecs-fargate-resourceinitializationerror-unable-to-pull-secrets-or-registry)
 - [Large sized AWS VPC for an Amazon ECS cluster](https://containersonaws.com/pattern/large-vpc-for-amazon-ecs-cluster): 위 stack overflow 답변 내에 있는 Containers on AWS 링크이다. ECS cluster를 위한 VPC 템플릿 구성 방법에 대해 설명한다.
 - [Amazon ECS cluster with isolated VPC and no NAT Gateway](https://containersonaws.com/pattern/ecs-cluster-isolated-vpc-no-nat-gateway): 마찬가지로 답변에서 참조하는 링크인데, 이것은 NAT 없이 Private subnet에 ECS를 구축하고, ECR을 연결하는 방법을 설명하고 있다.
 
@@ -260,5 +241,5 @@ PrivateLink 컨셉이 적용된 최종 네트워크 구조이다.
 
 ## 회고
 
-- 역시 네트워크는 언제 봐도 어렵다. 하지만 이번 "헤딩"으로 AWS 서비스들의 네트워크 구조를 더 확실히 알 수 있었다. VPC 내부 및 VPC 외부에 있는 서비스, 그리고 그것들의 연결, 그 외 별도의 글로벌 서비스들, 이것들의 네트워크 위치를 정확히 알아야 이해하고 구축할 수 있는 부분이다.
-- 쉽게 구축할 수 있는 방법은 얼마든지 있다. '그냥 귀찮으니 Public으로 열어버리자'. 그러면 정말 쉽겠다. 하지만 그러한 것들 하나하나가 쌓여 보안 취약점이 되고 나중에는 실제 공격을 받아도 아무것도 손쓸 수 없게 된다. 클린코드에서 코드의 청결함에 대해 이야기할 때 "깨진 유리창" 이론과 같이 말이다. 항상 정석적으로 정확하게 구현하는 것이 완벽한 아키텍처로 다가가는 한걸음이고, 그것이 내가 발전하는 지름길이자, "정도"이다.
+- 역시 네트워크는 언제 봐도 어렵지만 이번 "헤딩"으로 AWS 서비스들의 네트워크 구조를 더 확실히 알 수 있었다. VPC 내부 및 VPC 외부에 있는 서비스, 그리고 그것들의 연결, 그 외 별도의 글로벌 서비스들, 이것들의 네트워크 위치를 정확히 알아야 이해하고 구축할 수 있는 부분이다.
+- 쉽게 구축할 수 있는 방법은 얼마든지 있다. '그냥 귀찮으니 Public으로 열어버리자. 방화벽 설정하면 되지.'. 그러면 정말 쉽겠다. 하지만 그러한 설계 하나하나가 쌓여 보안 취약점이 되고 나중에는 실제 공격을 받아도 아무것도 손쓸 수 없고 원인도 찾기 힘들어진다. 항상 정석적으로 구현하고 작은 설계 하나하나에 정확한 나의 의도를 담는 것이 완벽한 아키텍처로 다가가는 한걸음이고, 그것이 내가 발전하는 지름길이자, "정도"라고 생각한다.
